@@ -15,6 +15,7 @@ export interface AuthUser {
   id: string;
   name: string;
   email: string;
+  phone: string;
   role: ViewerRole;
 }
 
@@ -42,6 +43,7 @@ export function useAuth() {
         id: userData.id || userData._id || "guest-user",
         name: userData.name || "Propenu User",
         email: userData.email || "",
+        phone: userData.phone ? String(userData.phone) : "",
         role: (userData.roleName || userData.role || "user") as ViewerRole,
       }
     : null;

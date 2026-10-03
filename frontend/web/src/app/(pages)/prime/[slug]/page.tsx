@@ -109,8 +109,8 @@ export default async function Page({ params }: PageProps) {
     { title: "Available Units", href: "#available-properties" },
     { title: "Amenities", href: "#amenities" },
     { title: "Location Advantages", href: "#map-view" },
-    { title: "Specifications", href: "#specification" },
     { title: "Gallery", href: "#gallery" },
+    { title: "Specifications", href: "#specification" },
     { title: "About Us", href: "#about-us" },
     ...(project?.brochure?.url ? [{ title: "Brochure Preview", href: "#brochure-preview" }] : []),
   ];
@@ -278,14 +278,15 @@ export default async function Page({ params }: PageProps) {
             <LocateUs nearbyPlaces={nearbyPlaces} />
           </div>
 
-          <div id="specification" className="scroll-mt-20">
-            <Specification specifications={specifications} />
-          </div>
 
           <div id="gallery" className="scroll-mt-20">
             <Gallery gallerySummary={gallerySummary} />
           </div>
 
+          
+          <div id="specification" className="scroll-mt-20">
+            <Specification specifications={specifications} />
+          </div>
 
           <div id="about-us" className="scroll-mt-20">
             <AboutUS aboutSummary={aboutSummary} />

@@ -10,6 +10,51 @@ const nextConfig: NextConfig = {
 
   // Invite email links that wrongly hit the web app (/api/properties/public/...)
   // are proxied to the API gateway so click → project preview still works.
+  async redirects() {
+    return [
+      {
+        source: "/login",
+        destination: "/?auth=login&redirect=/",
+        permanent: false,
+      },
+      {
+        source: "/register",
+        destination: "/?auth=register&redirect=/",
+        permanent: false,
+      },
+      {
+        source: "/search/filter",
+        destination: "/properties?focus=filters",
+        permanent: false,
+      },
+      {
+        source: "/services",
+        destination: "/explore-properties",
+        permanent: false,
+      },
+      {
+        source: "/support/ticket/:ticketId",
+        destination: "/support?ticketId=:ticketId",
+        permanent: false,
+      },
+      {
+        source: "/builder/leads/:projectId",
+        destination: "/builder/leads?projectId=:projectId",
+        permanent: false,
+      },
+      {
+        source: "/builder/user-shortlists",
+        destination: "/builder/my-shortlists",
+        permanent: false,
+      },
+      {
+        source: "/properties/landploat/:slug",
+        destination: "/properties/land/:slug",
+        permanent: true,
+      },
+    ];
+  },
+
   async rewrites() {
     return [
       {

@@ -30,6 +30,14 @@ const sortProjectsByRank = (projects: FeaturedProject[]) =>
     return rankA - rankB;
   });
 
+function getPriceLabel(price?: number) {
+  if (typeof price !== "number" || !Number.isFinite(price) || price <= 0) {
+    return "Price on Request";
+  }
+
+  return `${formatINR(price)} onwards`;
+}
+
 function PrimeProjectCard({ project }: { project: FeaturedProject }) {
   const { isShortlisted, isShortlistLoading, toggleShortlist } = useShortlist(
     project._id,
@@ -163,11 +171,7 @@ function PrimeProjectCard({ project }: { project: FeaturedProject }) {
           </p>
 
           <p className="text-[#26ad5f] text-sm md:text-base font-medium">
-            {formatINR(project?.priceFrom)}
-            <span className="text-[#676666] font-light text-sm">
-              {" "}
-              onwards
-            </span>
+            {getPriceLabel(project?.priceFrom)}
           </p>
         </div>
       </div>

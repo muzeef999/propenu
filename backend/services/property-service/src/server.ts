@@ -17,6 +17,7 @@ import analyticsRouter from "./routes/analyticsRoute";
 import sponsoredRoute from "./features/sponsored/sponsored.route";
 import blogRoute from "./blogs/blog.route";
 import siteBrandingRoute from "./siteBranding/siteBranding.route";
+import homeLoanApplicationRoute from "./routes/homeLoanApplicationRoute";
 import { startPromotionExpiryJob } from "./jobs/promotionExpiry.job";
 import userInteractionRoute from "./routes/userInteractionRoute";
 import mongoose from "mongoose";
@@ -89,6 +90,7 @@ async function start() {
     app.use("/api/properties/sponsored", sponsoredRoute);
     app.use("/api/properties/blogs", blogRoute);
     app.use("/api/properties/site-branding", siteBrandingRoute);
+    app.use("/api/properties/home-loans", homeLoanApplicationRoute);
     app.use("/api/properties/interactions", userInteractionRoute);
 
     

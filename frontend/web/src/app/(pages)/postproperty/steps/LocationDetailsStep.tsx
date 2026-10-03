@@ -25,13 +25,38 @@
       ),
     {
       ssr: false,
-      loading: () => (
-        <div className="h-52 flex items-center justify-center border rounded">
-          Loading map…
-        </div>
-      ),
+      loading: () => <PinMapLoadingSkeleton />,
     }
   );
+
+  function PinMapLoadingSkeleton() {
+    return (
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Pin property location
+        </label>
+        <div className="relative h-70 overflow-hidden rounded border border-gray-500 bg-gray-100">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-full space-y-4 px-6">
+              <div className="grid grid-cols-4 gap-3">
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((item) => (
+                  <div
+                    key={item}
+                    className="h-8 animate-pulse rounded bg-white/80"
+                  />
+                ))}
+              </div>
+              <div className="mx-auto h-10 w-10 animate-pulse rounded-full bg-gray-300 ring-8 ring-white/70" />
+              <div className="space-y-2">
+                <div className="h-3 w-3/4 animate-pulse rounded bg-white/80" />
+                <div className="h-3 w-1/2 animate-pulse rounded bg-white/80" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   type OpenStreetPinMapProps = {
     coordinates?: [number, number];

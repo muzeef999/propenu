@@ -10,6 +10,7 @@ import { absoluteSiteUrl, DEFAULT_OG_IMAGE, SITE_URL } from "@/utilies/siteUrl";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  applicationName: "Propenu",
   title: "Propenu | Smart, Trusted & Verified Real Estate Platform",
   description:
     "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
@@ -43,6 +44,21 @@ export const metadata: Metadata = {
     description:
       "Post your property on Propenu and sell smarter. Verified listings, genuine buyers, and a completely spam-free experience.",
     images: [absoluteSiteUrl(DEFAULT_OG_IMAGE)],
+  },
+  appLinks: {
+    ios: {
+      url: "propenu://",
+      app_name: "Propenu",
+    },
+    android: {
+      package: "com.propenu.app",
+      url: "propenu://",
+      app_name: "Propenu",
+    },
+    web: {
+      url: absoluteSiteUrl("/"),
+      should_fallback: true,
+    },
   },
 };
 

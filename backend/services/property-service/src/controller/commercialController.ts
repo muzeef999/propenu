@@ -25,6 +25,7 @@ import {
   sendListingSubmittedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import { notifySearchMatchesForListing } from "../services/searchMatchNotificationService";
 import {
   buildPostedByAudit,
   isDirectAgentRole,
@@ -840,6 +841,12 @@ export const verifyCommercialDocument = async (
     };
 
     if (existingProperty?.status !== "active" && updated.status === "active") {
+      void notifySearchMatchesForListing({
+        listing: updated as any,
+        kind: "property",
+        category: "commercial",
+      });
+
       try {
         const userId = (updated as any).createdBy || (updated as any).ownerId;
         const user = await User.findById(userId).populate("roleId").lean();
@@ -982,6 +989,11 @@ export const approveCommercialProperty = async (
     }
 
     await property.save();
+    void notifySearchMatchesForListing({
+      listing: property as any,
+      kind: "property",
+      category: "commercial",
+    });
 
     const notificationStatus = {
       email: false,

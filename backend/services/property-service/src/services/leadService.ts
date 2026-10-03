@@ -12,6 +12,7 @@ import User from "../models/userModel";
 import { notifyOwnerAndAdmins } from "./pushNotificationService";
 import { buildLeadPropertySnapshot } from "../utils/leadPropertySnapshot";
 import { sendLeadWhatsApp } from "../utils/whatsapp";
+import { sendUserContactingEmail } from "../../../../shared/email/email.helper";
 
 const PROPERTY_MODEL_MAP: Record<string, any> = {
   featuredprojects: FeaturedProject,
@@ -85,7 +86,7 @@ const notifyLeadCreated = async ({
 }) => {
   const [user, owner] = await Promise.all([
     User.findById(userId).select("name phone email").lean(),
-    User.findById(lead.ownerId).select("phone").lean(),
+    User.findById(lead.ownerId).select("name phone email").lean(),
   ]);
   const propertyTitle =
     property?.title ||
@@ -120,6 +121,23 @@ const notifyLeadCreated = async ({
     }).catch((err) =>
       console.error("Error sending lead WhatsApp:", err),
     );
+  }
+
+  const ownerEmail = String(owner?.email || "").trim();
+  if (ownerEmail) {
+    const location =
+      property?.locality ||
+      property?.city ||
+      property?.location?.city ||
+      "your area";
+    sendUserContactingEmail(
+      ownerEmail,
+      owner?.name || "Owner",
+      userName,
+      propertyTitle,
+      location,
+      "https://propenu.com/my-properties",
+    ).catch((err) => console.error("Error sending lead email:", err));
   }
 };
 

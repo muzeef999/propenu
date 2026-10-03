@@ -3,19 +3,26 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { createPortal } from "react-dom";
+import { useAuth } from "@/hooks/useAuth";
+import { createHomeLoanApplication } from "@/data/ClientData";
 
 interface HomeLoanApplyDialogProps {
   isOpen: boolean;
   onClose: () => void;
   titleId: string;
+  metadata?: Record<string, unknown>;
 }
 
 export default function HomeLoanApplyDialog({
   isOpen,
   onClose,
   titleId,
+  metadata = {},
 }: HomeLoanApplyDialogProps) {
+  const { user } = useAuth();
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
   const [fullName, setFullName] = useState("");
   const [mobileNumber, setMobileNumber] = useState("");
   const [formErrors, setFormErrors] = useState({
@@ -27,6 +34,14 @@ export default function HomeLoanApplyDialog({
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (!isOpen || !user) return;
+
+    setFullName(user.name || "");
+    setMobileNumber(String(user.phone || "").replace(/\D/g, "").slice(-10));
+    setFormErrors({ fullName: "", mobileNumber: "" });
+  }, [isOpen, user]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -49,6 +64,8 @@ export default function HomeLoanApplyDialog({
 
   const resetForm = () => {
     setIsSubmitted(false);
+    setIsSubmitting(false);
+    setSubmitError("");
     setFullName("");
     setMobileNumber("");
     setFormErrors({ fullName: "", mobileNumber: "" });
@@ -59,7 +76,7 @@ export default function HomeLoanApplyDialog({
     resetForm();
   };
 
-  const handleApplySubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const handleApplySubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const normalizedName = fullName.trim();
@@ -89,7 +106,46 @@ export default function HomeLoanApplyDialog({
     }
 
     setFormErrors({ fullName: "", mobileNumber: "" });
-    setIsSubmitted(true);
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      await createHomeLoanApplication({
+        fullName: normalizedName,
+        mobileNumber: normalizedMobile,
+        email: user?.email || undefined,
+        source: "home_loans",
+        pageUrl:
+          typeof window !== "undefined"
+            ? `${window.location.pathname}${window.location.search}`
+            : "/home-loans",
+        metadata: {
+          entryPoint: "home_loan_apply_dialog",
+          ...metadata,
+          attribution: {
+            page:
+              typeof window !== "undefined"
+                ? `${window.location.pathname}${window.location.search}`
+                : "/home-loans",
+            submittedAt: new Date().toISOString(),
+            ...(typeof window !== "undefined"
+              ? { userAgent: window.navigator.userAgent }
+              : {}),
+            ...((metadata.attribution as Record<string, unknown> | undefined) ?? {}),
+          },
+        },
+      });
+
+      setIsSubmitted(true);
+    } catch (error: any) {
+      setSubmitError(
+        error?.response?.data?.message ||
+          error?.response?.data?.errors?.[0] ||
+          "Unable to submit your application. Please try again.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen || !mounted) return null;
@@ -103,8 +159,8 @@ export default function HomeLoanApplyDialog({
       aria-labelledby={titleId}
     >
       <div
-        className={`relative w-full rounded-2xl bg-white shadow-2xl ${
-          isSubmitted ? "max-w-[340px] px-5 py-6" : "max-w-[380px] p-5"
+        className={`relative w-full rounded-md bg-white shadow-2xl ${
+          isSubmitted ? "max-w-[425px] px-6 py-8 sm:px-7 sm:py-9" : "max-w-[380px] p-5"
         }`}
         onClick={(e) => e.stopPropagation()}
       >
@@ -187,10 +243,17 @@ export default function HomeLoanApplyDialog({
 
             <button
               type="submit"
-              className="mt-7 w-full rounded-md bg-[#27AE60] px-4 py-3 text-sm font-medium text-white shadow-xs transition-colors hover:bg-[#219653] active:scale-[0.99]"
+              disabled={isSubmitting}
+              className="mt-7 w-full rounded-md bg-[#27AE60] px-4 py-3 text-sm font-medium text-white shadow-xs transition-colors hover:bg-[#219653] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Apply Now
+              {isSubmitting ? "Submitting..." : "Apply Now"}
             </button>
+
+            {submitError ? (
+              <p className="mt-3 text-center text-xs font-medium text-red-500">
+                {submitError}
+              </p>
+            ) : null}
 
             <p className="mt-4 text-center text-[11px] leading-5 text-gray-500">
               By clicking on "Apply Now", you agree to our{" "}
@@ -206,9 +269,29 @@ export default function HomeLoanApplyDialog({
           </form>
         ) : (
           <div className="text-center">
-            <div className="mx-auto flex h-10 w-10 items-center justify-center rounded-full bg-[#8AE6B0] text-white">
+            <button
+              type="button"
+              onClick={handleClose}
+              aria-label="Close success message"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-emerald-100 bg-emerald-50 text-[#15803D] shadow-xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 hover:text-[#166534]"
+            >
               <svg
-                className="h-6 w-6"
+                className="h-5.5 w-5.5"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.75}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#27AE60] text-white shadow-[0_10px_24px_rgba(39,174,96,0.28)] ring-8 ring-[#DFF8EA]">
+              <svg
+                className="h-8 w-8"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -221,19 +304,12 @@ export default function HomeLoanApplyDialog({
                 />
               </svg>
             </div>
-            <h3 id={titleId} className="mt-6 text-sm font-semibold text-gray-950">
+            <h3 id={titleId} className="mt-7 text-base font-semibold text-gray-950">
               Submitted successfully
             </h3>
-            <p className="mx-auto mt-2 max-w-[260px] text-[11px] leading-4 text-gray-500">
+            <p className="mx-auto mt-3 max-w-[310px] text-sm leading-5 text-gray-500">
               Our Home Loan Expert will get in touch soon to discuss your offers
             </p>
-            <Link
-              href="/home-loans/offers"
-              onClick={handleClose}
-              className="mt-10 flex min-h-10 w-full items-center justify-center rounded-md bg-[#27AE60] px-6 text-xs font-medium text-white shadow-xs transition-colors hover:bg-[#219653] active:scale-[0.99]"
-            >
-              Explore Other Offers
-            </Link>
           </div>
         )}
       </div>

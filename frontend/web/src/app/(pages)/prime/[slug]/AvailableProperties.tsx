@@ -82,6 +82,20 @@ function formatINR(v?: number) {
   }
 }
 
+function getUnitPriceLabel(unit?: Unit) {
+  const price = unit?.maxPrice;
+
+  if (
+    typeof price === "number" &&
+    Number.isFinite(price) &&
+    price > 0
+  ) {
+    return formatINR(price);
+  }
+
+  return "Price on Request";
+}
+
 export default function AvailableProperties({ bhk }: Props) {
   const planScrollRef = useRef<HTMLDivElement | null>(null);
   const dragStartRef = useRef({
@@ -152,6 +166,7 @@ export default function AvailableProperties({ bhk }: Props) {
   );
 
   const activeUnit = units[activeUnitIndex];
+  const activeUnitPriceLabel = getUnitPriceLabel(activeUnit);
   const canZoomIn = planZoom < MAX_PLAN_ZOOM;
   const canZoomOut = planZoom > MIN_PLAN_ZOOM;
   const canDragPlan = planZoom > MIN_PLAN_ZOOM;
@@ -357,7 +372,7 @@ export default function AvailableProperties({ bhk }: Props) {
                 <div>
                   <div className="text-xs text-gray-500">Price</div>
                   <div className="text-xs font-medium text-green-700 sm:text-base">
-                    {formatINR(activeUnit?.maxPrice)}
+                    {activeUnitPriceLabel}
                   </div>
                 </div>
                 <div>
@@ -436,7 +451,7 @@ export default function AvailableProperties({ bhk }: Props) {
                   style={{ backgroundColor: color }}
                   className="inline-flex w-full cursor-pointer items-center justify-center rounded-md px-3 py-1.5 text-sm font-semibold text-white transition hover:brightness-95 sm:px-4 sm:py-2 sm:text-base"
                 >
-                  Book a Consultation
+                  {activeUnitPriceLabel}
                 </button>
               </div>
             </div>

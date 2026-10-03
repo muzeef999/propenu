@@ -23,6 +23,7 @@ import {
   sendListingRejectedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import { notifySearchMatchesForListing } from "../services/searchMatchNotificationService";
 import {
   buildPostedByAudit,
   isDirectAgentRole,
@@ -807,6 +808,12 @@ export const verifyLandDocument = async (req: AuthRequest, res: Response) => {
     };
 
     if (existingProperty?.status !== "active" && updated.status === "active") {
+      void notifySearchMatchesForListing({
+        listing: updated as any,
+        kind: "property",
+        category: "land",
+      });
+
       try {
         const userId = (updated as any).createdBy || (updated as any).ownerId;
         const user = await User.findById(userId).populate("roleId").lean();
@@ -942,6 +949,11 @@ export const approveLandProperty = async (req: AuthRequest, res: Response) => {
     }
 
     await property.save();
+    void notifySearchMatchesForListing({
+      listing: property as any,
+      kind: "property",
+      category: "land",
+    });
 
     const notificationStatus = {
       email: false,

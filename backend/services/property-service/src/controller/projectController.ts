@@ -4,6 +4,7 @@ import { AuthRequest } from "../middlewares/authMiddleware";
 import mongoose from "mongoose";
 import { canApproveProjectByHierarchy } from "../utils/projectApprovalPolicy";
 import { BuilderOnboardingService } from "../services/builderOnboardingService";
+import { notifySearchMatchesForListing } from "../services/searchMatchNotificationService";
 
 const resolveCreatorMeta = (project: any) => {
   const createdBy = project?.createdBy;
@@ -109,6 +110,11 @@ export const approveProject = async (req: AuthRequest, res: Response) => {
     project.approvedAt = new Date();
 
     await project.save();
+    void notifySearchMatchesForListing({
+      listing: project,
+      kind: "project",
+      category: project.categoryType as any,
+    });
 
     return res.status(200).json({
       success: true,

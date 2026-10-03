@@ -121,7 +121,7 @@ const getSponsoredPropertyHref = (property: SponsoredProperty) => {
         case "commercial":
             return `/properties/commercial/${slug}`;
         case "land":
-            return `/properties/landploat/${slug}`;
+            return `/properties/land/${slug}`;
         case "agricultural":
             return `/properties/agricultural/${slug}`;
         case "featuredproject":
