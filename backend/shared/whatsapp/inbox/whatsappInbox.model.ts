@@ -92,13 +92,46 @@ const MessageSchema = new Schema<IWhatsAppMessage>(
 
 MessageSchema.index({ conversationId: 1, createdAt: 1 });
 
-export const WhatsAppConversation: Model<IWhatsAppConversation> =
-  (mongoose.models.WhatsAppConversation as Model<IWhatsAppConversation>) ||
-  mongoose.model<IWhatsAppConversation>(
-    "WhatsAppConversation",
-    ConversationSchema,
-  );
+/**
+ * Inbox rows must live in the same database the public webhook writes.
+ * Set WHATSAPP_INBOX_MONGO_URI when this process is not that server.
+ */
+let dedicatedInboxConnection: mongoose.Connection | null = null;
 
-export const WhatsAppMessage: Model<IWhatsAppMessage> =
-  (mongoose.models.WhatsAppMessage as Model<IWhatsAppMessage>) ||
-  mongoose.model<IWhatsAppMessage>("WhatsAppMessage", MessageSchema);
+function inboxConnection() {
+  const uri = String(process.env.WHATSAPP_INBOX_MONGO_URI || "").trim();
+  const dbName = String(process.env.WHATSAPP_INBOX_DB_NAME || "").trim();
+  if (!uri || !dbName) return mongoose;
+  if (dedicatedInboxConnection) return dedicatedInboxConnection;
+
+  dedicatedInboxConnection = mongoose.createConnection(uri, {
+    dbName,
+    maxPoolSize: 10,
+    serverSelectionTimeoutMS: 8000,
+    socketTimeoutMS: 45000,
+  });
+  dedicatedInboxConnection.on("connected", () => {
+    console.log(`WhatsApp inbox Mongo connected: ${dbName}`);
+  });
+  dedicatedInboxConnection.on("error", (err) => {
+    console.error("WhatsApp inbox Mongo error:", err?.message || err);
+  });
+  return dedicatedInboxConnection;
+}
+
+function bindModel<T>(name: string, schema: Schema<T>): Model<T> {
+  const conn = inboxConnection();
+  const existing = conn.models[name] as Model<T> | undefined;
+  if (existing) return existing;
+  return conn.model<T, Model<T>>(name, schema);
+}
+
+export const WhatsAppConversation: Model<IWhatsAppConversation> = bindModel(
+  "WhatsAppConversation",
+  ConversationSchema,
+);
+
+export const WhatsAppMessage: Model<IWhatsAppMessage> = bindModel(
+  "WhatsAppMessage",
+  MessageSchema,
+);

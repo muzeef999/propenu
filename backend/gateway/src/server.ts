@@ -16,11 +16,14 @@ dotenv.config({ path: path.resolve(__dirname, "../.env"), quiet: true });
 const app = express();
 const PORT = Number(process.env.PORT ?? 4000);
 
-const PAYMENT_SERVICE_URL = process.env.PAYMENT_SERVICE_URL || "";
-const PROPERTY_SERVICE_URL = process.env.PROPERTY_SERVICE_URL || "";
-const USER_SERVICE_URL = process.env.USER_SERVICE_URL || "";
-const AI_SERVICE_URL = process.env.AI_SERVICE_URL || "";
-const TICKET_SERVICE_URL = process.env.TICKET_SERVICE_URL || "";
+/** Drop accidental spaces so "http:// 192.168..." still reaches the service. */
+const serviceUrl = (value: string | undefined) => String(value || "").replace(/\s+/g, "");
+
+const PAYMENT_SERVICE_URL = serviceUrl(process.env.PAYMENT_SERVICE_URL);
+const PROPERTY_SERVICE_URL = serviceUrl(process.env.PROPERTY_SERVICE_URL);
+const USER_SERVICE_URL = serviceUrl(process.env.USER_SERVICE_URL);
+const AI_SERVICE_URL = serviceUrl(process.env.AI_SERVICE_URL);
+const TICKET_SERVICE_URL = serviceUrl(process.env.TICKET_SERVICE_URL);
 
 if (!PAYMENT_SERVICE_URL || !PROPERTY_SERVICE_URL || !USER_SERVICE_URL || !AI_SERVICE_URL || !TICKET_SERVICE_URL) {
   console.error("❌ Missing service URL(s). Check your .env");

@@ -4,6 +4,7 @@ import FeaturedProject from "../models/featurePropertiesModel";
 import { buildManualPromotion, normalizeSponsoredAd } from "../services/promotionService";
 import { IPromotion } from "../models/sharedSchemas";
 import { AuthRequest } from "../middlewares/authMiddleware";
+import { resolveVisibleLeadLimit } from "../utils/promotionAccess";
 
 type PromotionType = "normal" | "featured" | "sponsored" | "prime";
 
@@ -94,11 +95,17 @@ export const promoteProperty = async (req: AuthRequest, res: Response) => {
       return Math.trunc(n);
     })();
 
+    const nextLeadLimit = resolveVisibleLeadLimit({
+      roleName: req.user?.roleName,
+      requested: parsedLeadLimit,
+      current: property.promotion?.visibleLeadLimit,
+      forceZero: type === "normal",
+    });
+    if (nextLeadLimit !== undefined) {
+      promotion.visibleLeadLimit = nextLeadLimit;
+    }
     if (type === "normal") {
-      promotion.visibleLeadLimit = 0;
       promotion.sponsoredAd = {};
-    } else if (parsedLeadLimit !== null) {
-      promotion.visibleLeadLimit = parsedLeadLimit;
     }
 
     if (type !== "normal") {
@@ -208,17 +215,24 @@ export const renewPromotion = async (req: AuthRequest, res: Response) => {
       ),
     };
 
-    if (typeof visibleLeadLimit === "number" && visibleLeadLimit >= 0) {
-      promotion.visibleLeadLimit = visibleLeadLimit;
-    } else if (visibleLeadLimit !== undefined && visibleLeadLimit !== null && visibleLeadLimit !== "") {
-      const parsed = Number(visibleLeadLimit);
-      if (Number.isFinite(parsed) && parsed >= 0) {
-        promotion.visibleLeadLimit = Math.trunc(parsed);
-      } else if (typeof currentPromotion.visibleLeadLimit === "number") {
-        promotion.visibleLeadLimit = currentPromotion.visibleLeadLimit;
+    const requestedLeadLimit = (() => {
+      if (visibleLeadLimit === null || visibleLeadLimit === undefined || visibleLeadLimit === "") {
+        return null;
       }
-    } else if (typeof currentPromotion.visibleLeadLimit === "number") {
-      promotion.visibleLeadLimit = currentPromotion.visibleLeadLimit;
+      const parsed = Number(visibleLeadLimit);
+      if (!Number.isFinite(parsed) || parsed < 0) return null;
+      return Math.trunc(parsed);
+    })();
+    const nextLeadLimit = resolveVisibleLeadLimit({
+      roleName: req.user?.roleName,
+      requested: requestedLeadLimit,
+      current:
+        typeof currentPromotion.visibleLeadLimit === "number"
+          ? currentPromotion.visibleLeadLimit
+          : null,
+    });
+    if (nextLeadLimit !== undefined) {
+      promotion.visibleLeadLimit = nextLeadLimit;
     }
 
     appendPromotionHistory(

@@ -285,7 +285,8 @@ async function forwardToConversationFlow(body: any) {
   const forwardUrl = String(
     process.env.WHATSAPP_FLOW_FORWARD_URL || "",
   ).trim();
-  if (!forwardUrl) return false;
+  // No external flow engine: the inbox is the destination, so accept the webhook.
+  if (!forwardUrl) return true;
 
   let parsedUrl: URL;
   try {
