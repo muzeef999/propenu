@@ -5,6 +5,7 @@ import "./agriculturalModel";
 import "./landModel";
 import "./roleModel";
 import "./projectBuilderInviteModel";
+import "./homeLoanApplicationModel";
 
 // shared models
 import "./userModel";

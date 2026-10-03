@@ -267,6 +267,34 @@ export const updateUser = async (payload: {
   return res.data;
 };
 
+export type HomeLoanApplicationPayload = {
+  fullName: string;
+  mobileNumber: string;
+  email?: string;
+  source?: string;
+  pageUrl?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export const createHomeLoanApplication = async (
+  payload: HomeLoanApplicationPayload,
+) => {
+  const token = Cookies.get("token");
+  const res = await axiosInstance.post(
+    "/properties/home-loans/applications",
+    payload,
+    token
+      ? {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      : undefined,
+  );
+
+  return res.data;
+};
+
 export type AdminUserProfilePayload = {
   name?: string;
   companyName?: string;

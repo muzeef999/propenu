@@ -102,7 +102,7 @@ export default function HomeLoanOffers() {
   }, []);
 
   return (
-    <section className="w-full bg-white py-12 sm:py-16">
+    <section className="w-full bg-white py-12 sm:py-8">
       <div className="container mx-auto space-y-14">
         {/* <div className="overflow-hidden rounded-2xl bg-[#F5FFFC] py-8 shadow-[0_2px_22px_rgba(15,23,42,0.04)]">
           <div className="flex items-center justify-between gap-4 px-6 sm:px-10">

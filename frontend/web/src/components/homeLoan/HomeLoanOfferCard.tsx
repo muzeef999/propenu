@@ -240,6 +240,24 @@ export default function LoanOfferCard({ offer }: { offer: LoanOffer }) {
         titleId={`apply-loan-title-${offer.bankName
           .replace(/\s+/g, "-")
           .toLowerCase()}`}
+        metadata={{
+          sourceSection: "loan_offer_card",
+          selectedOffer: {
+            bankName: offer.bankName,
+            loanAmount: offer.loanAmount,
+            interest: offer.interest,
+            tenure: offer.tenure,
+            monthlyEmi: offer.monthlyEmi,
+            processingFee: offer.processingFee,
+            processingTime: offer.processingTime,
+            discountOnProcessing: offer.discountOnProcessing,
+            loginFee: offer.loginFee,
+          },
+          attribution: {
+            sourceSection: "loan_offer_card",
+            selectedBank: offer.bankName,
+          },
+        }}
       />
     </>
   );

@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "255493C566.com.propenu.app",
+        "paths": ["*"]
+      }
+    ]
+  }
+}

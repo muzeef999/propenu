@@ -64,7 +64,7 @@ function getPropertyLink(property: Property) {
     case "commercial":
       return `/properties/commercial/${property.slug}`;
     case "land":
-      return `/properties/landploat/${property.slug}`;
+      return `/properties/land/${property.slug}`;
     case "agricultural":
       return `/properties/agricultural/${property.slug}`;
     case "featuredproject":

@@ -29,6 +29,7 @@ import {
   sendListingSubmittedEmail,
 } from "../../../../shared/email/email.helper";
 import { sendTemplateNotification } from "../../../../shared/notifications/push.service";
+import { notifySearchMatchesForListing } from "../services/searchMatchNotificationService";
 import {
   buildPostedByAudit,
   isDirectAgentRole,
@@ -935,6 +936,12 @@ export const verifyResidentialDocument = async (
     };
 
     if (existingProperty?.status !== "active" && updated.status === "active") {
+      void notifySearchMatchesForListing({
+        listing: updated as any,
+        kind: "property",
+        category: "residential",
+      });
+
       try {
         const userId = (updated as any).createdBy || (updated as any).ownerId;
         const user = await User.findById(userId).populate("roleId").lean();
@@ -1074,6 +1081,11 @@ export const approveProperty = async (req: AuthRequest, res: Response) => {
     }
 
     await property.save();
+    void notifySearchMatchesForListing({
+      listing: property as any,
+      kind: "property",
+      category: "residential",
+    });
 
     const notificationStatus = {
       email: false,

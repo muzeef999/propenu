@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import HomeLoanApplyDialog from "./HomeLoanApplyDialog";
 
 export type CalculatorTab = "eligibility" | "emi";
@@ -14,6 +14,20 @@ export default function HomeLoanCalculator({
 }: HomeLoanCalculatorProps) {
   const [activeTab, setActiveTab] = useState<CalculatorTab>(initialTab);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
+
+  useEffect(() => {
+    const handleTabChange = (event: Event) => {
+      const { detail } = event as CustomEvent<CalculatorTab>;
+      if (detail === "eligibility" || detail === "emi") {
+        setActiveTab(detail);
+      }
+    };
+
+    window.addEventListener("home-loan-calculator-tab", handleTabChange);
+    return () => {
+      window.removeEventListener("home-loan-calculator-tab", handleTabChange);
+    };
+  }, []);
 
   // -------------------------------------------------------------
   // Tab 1: Eligibility State
@@ -620,6 +634,32 @@ export default function HomeLoanCalculator({
         isOpen={isApplyModalOpen}
         onClose={() => setIsApplyModalOpen(false)}
         titleId="calculator-apply-loan-title"
+        metadata={{
+          sourceSection: "calculator",
+          calculator: activeTab === "eligibility"
+            ? {
+                type: "eligibility",
+                monthlyIncome,
+                existingEmis,
+                tenureYears: eligibilityTenure,
+                interestRate: eligibilityRate,
+                maxEligibleLoan,
+                eligibleMonthlyEmi,
+              }
+            : {
+                type: "emi",
+                loanAmount,
+                interestRate: emiRate,
+                tenureYears: emiTenure,
+                calculatedEmi,
+                totalInterest,
+                totalPayment,
+              },
+          attribution: {
+            sourceSection: "calculator",
+            activeTab,
+          },
+        }}
       />
     </section>
   );

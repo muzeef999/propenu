@@ -25,6 +25,7 @@ import { injectSponsored } from "@/utilies/injectSponsored";
 import FilterDropdown from "@/ui/FilterDropdown";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import formatINR from "@/utilies/PriceFormat";
+import { trackInteraction } from "@/services/trackingService";
 
 const propertySkeletonItems = Array.from({ length: 4 });
 const sponsoredSkeletonItems = Array.from({ length: 2 });
@@ -50,7 +51,7 @@ function getPropertyLink(property: any) {
     case "commercial":
       return `/properties/commercial/${property.slug}`;
     case "land":
-      return `/properties/landploat/${property.slug}`;
+      return `/properties/land/${property.slug}`;
     case "agricultural":
       return `/properties/agricultural/${property.slug}`;
     case "featuredproject":
@@ -367,6 +368,47 @@ const PropertiesPageContent: React.FC = () => {
     },
     [filters, effectiveCity, effectiveState, urlLocality],
   );
+  const searchContextKey = React.useMemo(() => {
+    const context = {
+      category: params.category,
+      type: searchParams.get("type") || params.category,
+      listingType: params.listingType,
+      search: params.search,
+      city: params.city,
+      state: params.state,
+      locality: params.locality,
+      minPrice: params.minPrice,
+      maxPrice: params.maxPrice,
+      bedrooms: (params as Record<string, unknown>).bedrooms,
+    };
+
+    return JSON.stringify(context);
+  }, [params, searchParams]);
+
+  React.useEffect(() => {
+    const searchContext = JSON.parse(searchContextKey) as Record<string, unknown>;
+    const hasSearchIntent = [
+      searchContext.search,
+      searchContext.city,
+      searchContext.locality,
+      searchContext.minPrice,
+      searchContext.maxPrice,
+      searchContext.bedrooms,
+    ].some((value) => value !== undefined && value !== null && String(value).trim());
+
+    if (!hasSearchIntent) return;
+
+    trackInteraction({
+      eventType: searchContext.search ? "search_performed" : "filter_applied",
+      eventCategory: "search",
+      source: "properties_results",
+      searchContext: {
+        ...searchContext,
+        targetPath: `${window.location.pathname}${window.location.search}`,
+      },
+    });
+  }, [searchContextKey]);
+
   const { items, sponsored, loading, total, meta } = useStreamProperties(params);
   const [sortBy, setSortBy] = React.useState("newest");
   const [sortDropdownOpen, setSortDropdownOpen] = React.useState(false);

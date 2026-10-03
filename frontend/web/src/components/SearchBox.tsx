@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { ArrowDropdownIcon } from "@/icons/icons";
 import { IoIosSearch } from "react-icons/io";
 import { IoCloseCircleOutline } from "react-icons/io5";
+import { trackInteraction } from "@/services/trackingService";
 
 const url = process.env.NEXT_PUBLIC_API_URL;
 const RECENT_SEARCHES_KEY = "propenu_recent_searches";
@@ -366,6 +367,72 @@ const SearchBox = ({
     return `/properties?${params.toString()}`;
   };
 
+  const buildSearchContext = (
+    options?: {
+      localities?: string[];
+      text?: string;
+      city?: string | null;
+      state?: string | null;
+      targetPath?: string;
+    },
+  ) => {
+    const {
+      localities = selectedLocalities,
+      text = searchText,
+      city = effectiveSearchContext.city || null,
+      state = effectiveSearchContext.state || null,
+      targetPath,
+    } = options ?? {};
+
+    const cleanedLocalities = localities
+      .map((locality) => locality.trim())
+      .filter(Boolean);
+    const cleanedSearch = text.trim();
+    const context: Record<string, unknown> = {
+      category,
+      type: categoryToType[category],
+      listingType: listingTypeValue,
+    };
+
+    if (cleanedSearch) context.search = cleanedSearch;
+    if (cleanedLocalities.length > 0) context.locality = cleanedLocalities.join(",");
+    if (city) context.city = city;
+    if (state) context.state = state;
+    if (residential.bedrooms?.length) {
+      context.bedrooms = residential.bedrooms
+        .map((bedroom) => (bedroom === "6+" ? "6plus" : String(bedroom)))
+        .join(",");
+    }
+    if (targetPath) context.targetPath = targetPath;
+
+    return context;
+  };
+
+  const trackSearchSubmit = (
+    contextOptions?: Parameters<typeof buildSearchContext>[0],
+  ) => {
+    const searchContext = buildSearchContext(contextOptions);
+
+    if (
+      !searchContext.search &&
+      !searchContext.locality &&
+      !searchContext.city &&
+      !searchContext.bedrooms
+    ) {
+      return;
+    }
+
+    trackInteraction({
+      eventType: "search_performed",
+      eventCategory: "search",
+      source: "search_box",
+      searchContext,
+      metadata: {
+        targetPath: searchContext.targetPath,
+      },
+    });
+  };
+
   const updateLocalityFilter = (localities: string[]) => {
     if (category === "Residential") {
       dispatch(
@@ -571,27 +638,43 @@ const SearchBox = ({
 
       if (firstSuggestion.kind === "city") {
         handleSuggestionSelect(firstSuggestion);
-        router.push(
-          buildPropertiesHref({
-            localities: [],
-            text: "",
-            city: firstSuggestion.city,
-            state: firstSuggestion.state,
-          }),
-        );
+        const targetPath = buildPropertiesHref({
+          localities: [],
+          text: "",
+          city: firstSuggestion.city,
+          state: firstSuggestion.state,
+        });
+        trackSearchSubmit({
+          localities: [],
+          text: "",
+          city: firstSuggestion.city,
+          state: firstSuggestion.state,
+          targetPath,
+        });
+        router.push(targetPath);
         onNavigate?.();
         return;
       }
 
       handleSuggestionSelect(firstSuggestion);
-      router.push(
-        buildPropertiesHref({
-          localities: toggleArrayValue(selectedLocalities, firstSuggestion.locality),
-          text: "",
-          city: firstSuggestion.city,
-          state: firstSuggestion.state,
-        }),
+      const nextLocalities = toggleArrayValue(
+        selectedLocalities,
+        firstSuggestion.locality,
       );
+      const targetPath = buildPropertiesHref({
+        localities: nextLocalities,
+        text: "",
+        city: firstSuggestion.city,
+        state: firstSuggestion.state,
+      });
+      trackSearchSubmit({
+        localities: nextLocalities,
+        text: "",
+        city: firstSuggestion.city,
+        state: firstSuggestion.state,
+        targetPath,
+      });
+      router.push(targetPath);
       onNavigate?.();
       return;
     } else {
@@ -601,11 +684,14 @@ const SearchBox = ({
       }
     }
 
-    router.push(
-      buildPropertiesHref({
-        text: selectedLocalities.length > 0 ? "" : searchText,
-      }),
-    );
+    const targetPath = buildPropertiesHref({
+      text: selectedLocalities.length > 0 ? "" : searchText,
+    });
+    trackSearchSubmit({
+      text: selectedLocalities.length > 0 ? "" : searchText,
+      targetPath,
+    });
+    router.push(targetPath);
     onNavigate?.();
   };
 
